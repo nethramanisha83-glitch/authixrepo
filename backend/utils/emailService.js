@@ -3,63 +3,76 @@ const nodemailer = require('nodemailer');
 const sendEmail = async (options) => {
   // 1. HTTP API Provider: Resend (Port 443 HTTPS - Never blocked on Render Free Tier)
   if (process.env.RESEND_API_KEY) {
-    console.log(`[EmailService] Sending email to ${options.email} via Resend HTTP API (Port 443)...`);
-    
-    // For Resend free accounts without custom DNS domain verification, default to onboarding@resend.dev
-    let resendFrom = 'Authix <onboarding@resend.dev>';
-    if (process.env.EMAIL_FROM && !process.env.EMAIL_FROM.includes('authsystem.com')) {
-      resendFrom = process.env.EMAIL_FROM.trim();
-    }
+    try {
+      console.log(`[EmailService] Sending email to ${options.email} via Resend HTTP API (Port 443)...`);
+      
+      // For Resend free accounts without custom DNS domain verification, default to onboarding@resend.dev
+      let resendFrom = 'Authix <onboarding@resend.dev>';
+      if (process.env.EMAIL_FROM && !process.env.EMAIL_FROM.includes('authsystem.com')) {
+        resendFrom = process.env.EMAIL_FROM.trim();
+      }
 
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY.trim()}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: resendFrom,
-        to: [options.email],
-        subject: options.subject,
-        text: options.message,
-        html: options.html || `<p>${options.message.replace(/\n/g, '<br>')}</p>`,
-      }),
-    });
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY.trim()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: resendFrom,
+          to: [options.email],
+          subject: options.subject,
+          text: options.message,
+          html: options.html || `<p>${options.message.replace(/\n/g, '<br>')}</p>`,
+        }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      console.error('[EmailService Resend Error]', data);
-      throw new Error(data.message || 'Resend HTTP email delivery failed.');
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`[EmailService] Email sent via Resend API! ID: ${data.id}`);
+        return data;
+      }
+      
+      console.warn(`[EmailService] Resend API Warning: ${data.message}. Attempting fallback provider...`);
+      if (!process.env.BREVO_API_KEY && !process.env.EMAIL_USERNAME) {
+        throw new Error(data.message || 'Resend HTTP email delivery failed.');
+      }
+    } catch (resendErr) {
+      console.warn(`[EmailService] Resend error (${resendErr.message}), trying fallback...`);
+      if (!process.env.BREVO_API_KEY && !process.env.EMAIL_USERNAME) {
+        throw resendErr;
+      }
     }
-    console.log(`[EmailService] Email sent via Resend API! ID: ${data.id}`);
-    return data;
   }
 
-  // 2. HTTP API Provider: Brevo / Sendinblue (Port 443 HTTPS)
+  // 2. HTTP API Provider: Brevo / Sendinblue (Port 443 HTTPS - Free 300 emails/day to ANY recipient)
   if (process.env.BREVO_API_KEY) {
-    console.log(`[EmailService] Sending email to ${options.email} via Brevo HTTP API (Port 443)...`);
-    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'api-key': process.env.BREVO_API_KEY.trim(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sender: { name: 'Auth System', email: process.env.EMAIL_FROM || 'noreply@authsystem.com' },
-        to: [{ email: options.email }],
-        subject: options.subject,
-        textContent: options.message,
-        htmlContent: options.html || `<p>${options.message.replace(/\n/g, '<br>')}</p>`,
-      }),
-    });
+    try {
+      console.log(`[EmailService] Sending email to ${options.email} via Brevo HTTP API (Port 443)...`);
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': process.env.BREVO_API_KEY.trim(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: 'Auth System', email: process.env.EMAIL_FROM || 'noreply@authsystem.com' },
+          to: [{ email: options.email }],
+          subject: options.subject,
+          textContent: options.message,
+          htmlContent: options.html || `<p>${options.message.replace(/\n/g, '<br>')}</p>`,
+        }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      console.error('[EmailService Brevo Error]', data);
-      throw new Error(data.message || 'Brevo HTTP email delivery failed.');
+      const data = await res.json();
+      if (res.ok) {
+        console.log(`[EmailService] Email sent via Brevo API! MessageId: ${data.messageId}`);
+        return data;
+      }
+      console.warn(`[EmailService] Brevo API Warning: ${data.message}. Attempting fallback provider...`);
+    } catch (brevoErr) {
+      console.warn(`[EmailService] Brevo error (${brevoErr.message}), trying fallback...`);
     }
-    console.log(`[EmailService] Email sent via Brevo API! MessageId: ${data.messageId}`);
-    return data;
   }
 
   // 3. Fallback: Nodemailer SMTP (For local dev or servers with open SMTP ports)
