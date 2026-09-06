@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Clock, CheckCircle, XCircle, Trophy, RefreshCw, ChevronRight } from 'lucide-react';
 
@@ -56,6 +56,11 @@ const QuizPage = () => {
   const [timeLeft, setTimeLeft] = useState(TIMER_SEC);
   const [feedback, setFeedback] = useState(null); // 'correct' | 'wrong'
   const timerRef = useRef(null);
+
+  const currentQuestion = questions[currentIdx];
+  const answerOptions = useMemo(() => {
+    return currentQuestion ? parseAnswers(currentQuestion) : [];
+  }, [currentQuestion]);
 
   const handleTimeout = useCallback(() => {
     if (selected !== null) return;
@@ -264,7 +269,6 @@ const QuizPage = () => {
   
   const q = questions[currentIdx];
   if (!q) return null;
-  const answerOptions = parseAnswers(q);
   const timerPct = (timeLeft / TIMER_SEC) * 100;
   const timerColor = timeLeft > 15 ? '#8b5cf6' : timeLeft > 8 ? '#f59e0b' : '#ef4444';
 
