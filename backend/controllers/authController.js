@@ -198,7 +198,9 @@ exports.forgotPassword = async (req, res) => {
       user.resetPasswordOtp = undefined;
       user.resetPasswordOtpExpires = undefined;
       await user.save();
-      return res.status(500).json({ message: 'Email could not be sent' });
+      return res.status(500).json({ 
+        message: 'Failed to send OTP email. Please check SMTP settings or try again.' 
+      });
     }
 
   } catch (error) {

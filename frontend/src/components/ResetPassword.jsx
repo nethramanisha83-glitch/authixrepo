@@ -41,12 +41,17 @@ const ResetPassword = () => {
     setIsLoading(true);
     setStatus({ type: null, message: '' });
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       const res = await fetch('/api/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, otp: formData.otp })
+        body: JSON.stringify({ email: formData.email, otp: formData.otp }),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       
       const data = await res.json();
       
@@ -57,10 +62,15 @@ const ResetPassword = () => {
           setStatus({ type: null, message: '' });
         }, 1500);
       } else {
-        setStatus({ type: 'error', message: data.message });
+        setStatus({ type: 'error', message: data.message || 'OTP verification failed' });
       }
     } catch (err) {
-      setStatus({ type: 'error', message: 'Network error.' });
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        setStatus({ type: 'error', message: 'Request timed out. Please try again.' });
+      } else {
+        setStatus({ type: 'error', message: 'Network error.' });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -74,6 +84,11 @@ const ResetPassword = () => {
     }
 
     setIsLoading(true);
+    setStatus({ type: null, message: '' });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       const res = await fetch('/api/reset-password', {
         method: 'POST',
@@ -82,8 +97,10 @@ const ResetPassword = () => {
           email: formData.email,
           otp: formData.otp, // send OTP again for final verification
           newPassword: formData.newPassword
-        })
+        }),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       
       const data = await res.json();
       
@@ -93,10 +110,15 @@ const ResetPassword = () => {
           navigate('/login');
         }, 2000);
       } else {
-        setStatus({ type: 'error', message: data.message });
+        setStatus({ type: 'error', message: data.message || 'Password reset failed' });
       }
     } catch (err) {
-      setStatus({ type: 'error', message: 'Network error.' });
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        setStatus({ type: 'error', message: 'Request timed out. Please try again.' });
+      } else {
+        setStatus({ type: 'error', message: 'Network error.' });
+      }
     } finally {
       setIsLoading(false);
     }

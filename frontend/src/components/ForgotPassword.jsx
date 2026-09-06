@@ -19,12 +19,17 @@ const ForgotPassword = () => {
     setIsLoading(true);
     setStatus({ type: null, message: '' });
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       const res = await fetch('/api/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       
       const data = await res.json();
       
@@ -35,10 +40,15 @@ const ForgotPassword = () => {
           navigate('/reset-password', { state: { email } });
         }, 2000);
       } else {
-        setStatus({ type: 'error', message: data.message });
+        setStatus({ type: 'error', message: data.message || 'Failed to send OTP' });
       }
     } catch (err) {
-      setStatus({ type: 'error', message: 'Connection refused. Server may be offline.' });
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        setStatus({ type: 'error', message: 'Request timed out. Server or email service is taking too long to respond.' });
+      } else {
+        setStatus({ type: 'error', message: 'Connection refused. Server may be offline or unreachable.' });
+      }
     } finally {
       setIsLoading(false);
     }

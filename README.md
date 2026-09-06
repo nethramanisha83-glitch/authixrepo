@@ -38,16 +38,17 @@ A full-stack, secure authentication web application built with a Node.js/Express
     cd backend
     npm install
     ```
-    Create a `.env` file in the `backend` directory based on `.env.example`:
+    Create a `.env` file in the `backend` directory:
     ```env
     PORT=5000
     MONGO_URI=mongodb://127.0.0.1:27017/authix
     JWT_SECRET=your_super_secret_jwt_key_here
     EMAIL_HOST=smtp.gmail.com
-    EMAIL_PORT=587
+    EMAIL_PORT=465
+    EMAIL_SECURE=true
     EMAIL_USERNAME=your_email@gmail.com
     EMAIL_PASSWORD=your_app_password
-    EMAIL_FROM=noreply@authsystem.com
+    EMAIL_FROM=your_email@gmail.com
     ```
 
 3.  **Frontend Setup**:
