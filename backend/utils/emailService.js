@@ -4,6 +4,13 @@ const sendEmail = async (options) => {
   // 1. HTTP API Provider: Resend (Port 443 HTTPS - Never blocked on Render Free Tier)
   if (process.env.RESEND_API_KEY) {
     console.log(`[EmailService] Sending email to ${options.email} via Resend HTTP API (Port 443)...`);
+    
+    // For Resend free accounts without custom DNS domain verification, default to onboarding@resend.dev
+    let resendFrom = 'Authix <onboarding@resend.dev>';
+    if (process.env.EMAIL_FROM && !process.env.EMAIL_FROM.includes('authsystem.com')) {
+      resendFrom = process.env.EMAIL_FROM.trim();
+    }
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -11,7 +18,7 @@ const sendEmail = async (options) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM || 'Authix <onboarding@resend.dev>',
+        from: resendFrom,
         to: [options.email],
         subject: options.subject,
         text: options.message,
