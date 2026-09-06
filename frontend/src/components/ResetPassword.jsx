@@ -42,7 +42,7 @@ const ResetPassword = () => {
     setStatus({ type: null, message: '' });
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     try {
       const res = await fetch('/api/verify-otp', {
@@ -87,7 +87,7 @@ const ResetPassword = () => {
     setStatus({ type: null, message: '' });
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     try {
       const res = await fetch('/api/reset-password', {

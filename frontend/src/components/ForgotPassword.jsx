@@ -20,7 +20,7 @@ const ForgotPassword = () => {
     setStatus({ type: null, message: '' });
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s to allow Render free tier cold start
 
     try {
       const res = await fetch('/api/forgot-password', {
@@ -45,7 +45,7 @@ const ForgotPassword = () => {
     } catch (err) {
       clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
-        setStatus({ type: 'error', message: 'Request timed out. Server or email service is taking too long to respond.' });
+        setStatus({ type: 'error', message: 'Request timed out. Server took too long to respond. Please try again.' });
       } else {
         setStatus({ type: 'error', message: 'Connection refused. Server may be offline or unreachable.' });
       }
